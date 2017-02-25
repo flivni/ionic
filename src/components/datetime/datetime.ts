@@ -605,6 +605,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
 
     // default to the current year
     let selectedYear: number = today.getFullYear();
+    let selectedMonth = 1;
 
     if (yearCol) {
       // default to the first value if the current year doesn't exist in the options
@@ -619,17 +620,11 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       }
     }
 
-    // default to assuming this month has 31 days
-    let numDaysInMonth = 31;
-    let selectedMonth: number;
     if (monthCol) {
       monthOpt = monthCol.options[monthCol.selectedIndex];
       if (monthOpt) {
         // they have a selected month value
         selectedMonth = monthOpt.value;
-
-        // calculate how many days are in this month
-        numDaysInMonth = daysInMonth(selectedMonth, selectedYear);
       }
     }
 
@@ -651,26 +646,18 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     }
 
     if (dayCol) {
-      if (isPresent(selectedMonth)) {
-        // enable/disable which days are valid
-        // to show within the min/max date range
-        for (i = 0; i < dayCol.options.length; i++) {
-          dayOpt = dayCol.options[i];
+      // enable/disable which days are valid
+      // to show within the min/max date range
+      for (i = 0; i < dayCol.options.length; i++) {
+        dayOpt = dayCol.options[i];
 
-          // loop through each day and see if it
-          // is within the min/max date range
-          var compareVal = dateSortValue(selectedYear, selectedMonth, dayOpt.value);
+        // loop through each day and see if it
+        // is within the min/max date range
+        var compareVal = dateSortValue(selectedYear, selectedMonth, dayOpt.value);
 
-          dayOpt.disabled = (compareVal < minCompareVal ||
-            compareVal > maxCompareVal ||
-            numDaysInMonth <= i);
-        }
-
-      } else {
-        // enable/disable which numbers of days to show in this month
-        for (i = 0; i < dayCol.options.length; i++) {
-          dayCol.options[i].disabled = (numDaysInMonth <= i);
-        }
+        // calculate how many days are in this month
+        let numDaysInMonth = daysInMonth(selectedMonth, selectedYear);
+        dayOpt.disabled = (compareVal < minCompareVal || compareVal > maxCompareVal || numDaysInMonth <= i);
       }
     }
 
