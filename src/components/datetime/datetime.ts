@@ -610,22 +610,22 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     let ampmOpt: PickerColumnOption;
 
     // default to the current year
-    let selectedYear: number = today.getFullYear();
+    let selectedYear = 0;
     let selectedMonth = 1;
     let selectedDay = 1;
     let selectedHour = 0;
     let selectedMinute = 0;
 
     if (yearCol) {
-      // default to the first value if the current year doesn't exist in the options
-      if (!yearCol.options.find(col => col.value === today.getFullYear())) {
-        selectedYear = yearCol.options[0].value;
-      }
-
       yearOpt = yearCol.options[yearCol.selectedIndex];
       if (yearOpt) {
         // they have a selected year value
         selectedYear = yearOpt.value;
+      } else if (yearCol.options.find(col => col.value === today.getFullYear())) {
+       selectedYear = today.getFullYear();
+      } else {
+        // default to the first value if the current year doesn't exist in the options
+        selectedYear = yearCol.options[0].value;
       }
     }
 
@@ -685,7 +685,6 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
         hourOpt.disabled =
           (dateSortValue(selectedYear, selectedMonth, selectedDay, hourOpt.value, 59) < minCompareVal ||
           dateSortValue(selectedYear, selectedMonth, selectedDay, hourOpt.value, 0) > maxCompareVal);
-
       }
     }
 
@@ -811,8 +810,13 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     min.minute = min.minute || 0;
     min.second = min.second || 0;
 
-    max.month = max.month || 12;
-    max.day = max.day || 31;
+    if(isPresent(min.year)) {
+      max.month = max.month || 12;
+      max.day = max.day || 31;
+    } else {
+      max.month = max.month || 1;
+      max.day = max.day || 1;
+    }
     max.hour = max.hour || 23;
     max.minute = max.minute || 59;
     max.second = max.second || 59;
