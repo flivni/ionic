@@ -531,7 +531,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       this.calcMinMax();
 
       // does not support selecting by day name
-      // automaticallly remove any day name formats
+      // automatically remove any day name formats
       template = template.replace('DDDD', '{~}').replace('DDD', '{~}');
       if (template.indexOf('D') === -1) {
         // there is not a day in the template
@@ -598,14 +598,23 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     let yearCol = columns.find(col => col.name === 'year');
     let monthCol = columns.find(col => col.name === 'month');
     let dayCol = columns.find(col => col.name === 'day');
+    let hourCol = columns.find(col => col.name === 'hour');
+    let minuteCol = columns.find(col => col.name === 'minute');
+    let ampmCol = columns.find(col => col.name === 'ampm');
 
     let yearOpt: PickerColumnOption;
     let monthOpt: PickerColumnOption;
     let dayOpt: PickerColumnOption;
+    let hourOpt: PickerColumnOption;
+    let minuteOpt: PickerColumnOption;
+    let ampmOpt: PickerColumnOption;
 
     // default to the current year
     let selectedYear: number = today.getFullYear();
     let selectedMonth = 1;
+    let selectedDay = 1;
+    let selectedHour = 0;
+    let selectedMinute = 0;
 
     if (yearCol) {
       // default to the first value if the current year doesn't exist in the options
@@ -620,44 +629,74 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       }
     }
 
+    // create sort values for the min/max datetimes
+    let minCompareVal = dateDataSortValue(this._min);
+    let maxCompareVal = dateDataSortValue(this._max);
+
     if (monthCol) {
       monthOpt = monthCol.options[monthCol.selectedIndex];
       if (monthOpt) {
         // they have a selected month value
         selectedMonth = monthOpt.value;
       }
-    }
 
-    // create sort values for the min/max datetimes
-    let minCompareVal = dateDataSortValue(this._min);
-    let maxCompareVal = dateDataSortValue(this._max);
-
-    if (monthCol) {
-      // enable/disable which months are valid
-      // to show within the min/max date range
+      // loop through each month and see if it is within the min/max date range
       for (i = 0; i < monthCol.options.length; i++) {
         monthOpt = monthCol.options[i];
 
-        // loop through each month and see if it
-        // is within the min/max date range
-        monthOpt.disabled = (dateSortValue(selectedYear, monthOpt.value, 31) < minCompareVal ||
-          dateSortValue(selectedYear, monthOpt.value, 1) > maxCompareVal);
+        monthOpt.disabled =
+          (dateSortValue(selectedYear, monthOpt.value, 31, 23, 59) < minCompareVal ||
+          dateSortValue(selectedYear, monthOpt.value, 1, 0, 0) > maxCompareVal);
       }
     }
 
     if (dayCol) {
-      // enable/disable which days are valid
-      // to show within the min/max date range
+      dayOpt = dayCol.options[dayCol.selectedIndex];
+      if (dayOpt) {
+        // they have a selected day value
+        selectedDay = dayOpt.value;
+      }
+
+      // calculate how many days are in this month
+      let numDaysInMonth = daysInMonth(selectedMonth, selectedYear);
+
+      // loop through each day and see if it is within the min/max date range
       for (i = 0; i < dayCol.options.length; i++) {
         dayOpt = dayCol.options[i];
 
-        // loop through each day and see if it
-        // is within the min/max date range
-        var compareVal = dateSortValue(selectedYear, selectedMonth, dayOpt.value);
+        dayOpt.disabled =
+          (dateSortValue(selectedYear, selectedMonth, dayOpt.value, 23, 59) < minCompareVal ||
+          dateSortValue(selectedYear, selectedMonth, dayOpt.value, 0, 0) > maxCompareVal ||
+          numDaysInMonth <= i);
+      }
+    }
 
-        // calculate how many days are in this month
-        let numDaysInMonth = daysInMonth(selectedMonth, selectedYear);
-        dayOpt.disabled = (compareVal < minCompareVal || compareVal > maxCompareVal || numDaysInMonth <= i);
+    if (hourCol) {
+      hourOpt = hourCol.options[hourCol.selectedIndex];
+      if (hourOpt) {
+        // they have a selected day value
+        selectedHour = hourOpt.value;
+      }
+
+      // loop through each hour and see if it is within the min/max date range
+      for (i = 0; i < hourCol.options.length; i++) {
+        hourOpt = hourCol.options[i];
+
+        hourOpt.disabled =
+          (dateSortValue(selectedYear, selectedMonth, selectedDay, hourOpt.value, 59) < minCompareVal ||
+          dateSortValue(selectedYear, selectedMonth, selectedDay, hourOpt.value, 0) > maxCompareVal);
+
+      }
+    }
+
+    // loop through each minute and see if it is within the min/max date range
+    if (minuteCol) {
+      for (i = 0; i < minuteCol.options.length; i++) {
+        minuteOpt = minuteCol.options[i];
+
+        var compareVal = dateSortValue(selectedYear, selectedMonth, selectedDay, selectedHour, minuteOpt.value);
+
+        minuteOpt.disabled = (compareVal < minCompareVal || compareVal > maxCompareVal);
       }
     }
 
