@@ -508,6 +508,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
 
     picker.ionChange.subscribe(() => {
       this.validate(picker);
+      picker.refresh();
     });
 
     picker.present(pickerOptions);
@@ -516,6 +517,8 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     picker.onDidDismiss(() => {
       this._isOpen = false;
     });
+
+    picker.refresh();
   }
 
   /**
@@ -610,11 +613,11 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     let ampmOpt: PickerColumnOption;
 
     // default to the current year
-    let selectedYear = 0;
+    let selectedYear:number = today.getFullYear();
     let selectedMonth = 1;
     let selectedDay = 1;
     let selectedHour = 0;
-    let selectedMinute = 0;
+    let selectedAmpm:string = null;
 
     if (yearCol) {
       yearOpt = yearCol.options[yearCol.selectedIndex];
@@ -645,8 +648,8 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
         monthOpt = monthCol.options[i];
 
         monthOpt.disabled =
-          (dateSortValue(selectedYear, monthOpt.value, 31, 23, 59) < minCompareVal ||
-          dateSortValue(selectedYear, monthOpt.value, 1, 0, 0) > maxCompareVal);
+          (dateSortValue(selectedYear, monthOpt.value, 31, null, 23, 59) < minCompareVal ||
+          dateSortValue(selectedYear, monthOpt.value, 1, null, 0, 0) > maxCompareVal);
       }
     }
 
@@ -665,9 +668,24 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
         dayOpt = dayCol.options[i];
 
         dayOpt.disabled =
-          (dateSortValue(selectedYear, selectedMonth, dayOpt.value, 23, 59) < minCompareVal ||
-          dateSortValue(selectedYear, selectedMonth, dayOpt.value, 0, 0) > maxCompareVal ||
+          (dateSortValue(selectedYear, selectedMonth, dayOpt.value, null, 23, 59) < minCompareVal ||
+          dateSortValue(selectedYear, selectedMonth, dayOpt.value, null, 0, 0) > maxCompareVal ||
           numDaysInMonth <= i);
+      }
+    }
+
+    // loop through each minute and see if it is within the min/max date range
+    if (ampmCol) {
+      ampmOpt = ampmCol.options[ampmCol.selectedIndex];
+      if(ampmOpt) {
+        selectedAmpm = ampmOpt.value;
+      }
+      for (i = 0; i < ampmCol.options.length; i++) {
+        ampmOpt = ampmCol.options[i];
+
+        ampmOpt.disabled =
+          (dateSortValue(selectedYear, selectedMonth, selectedDay, ampmOpt.value, 11, 59) < minCompareVal ||
+          dateSortValue(selectedYear, selectedMonth, selectedDay, ampmOpt.value, 0, 0) > maxCompareVal);
       }
     }
 
@@ -683,8 +701,8 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
         hourOpt = hourCol.options[i];
 
         hourOpt.disabled =
-          (dateSortValue(selectedYear, selectedMonth, selectedDay, hourOpt.value, 59) < minCompareVal ||
-          dateSortValue(selectedYear, selectedMonth, selectedDay, hourOpt.value, 0) > maxCompareVal);
+          (dateSortValue(selectedYear, selectedMonth, selectedDay, selectedAmpm, hourOpt.value, 59) < minCompareVal ||
+          dateSortValue(selectedYear, selectedMonth, selectedDay, selectedAmpm, hourOpt.value, 0) > maxCompareVal);
       }
     }
 
@@ -693,13 +711,13 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       for (i = 0; i < minuteCol.options.length; i++) {
         minuteOpt = minuteCol.options[i];
 
-        var compareVal = dateSortValue(selectedYear, selectedMonth, selectedDay, selectedHour, minuteOpt.value);
-
-        minuteOpt.disabled = (compareVal < minCompareVal || compareVal > maxCompareVal);
+        minuteOpt.disabled =
+          (dateSortValue(selectedYear, selectedMonth, selectedDay, selectedAmpm, selectedHour, minuteOpt.value) <
+            minCompareVal) ||
+          (dateSortValue(selectedYear, selectedMonth, selectedDay, selectedAmpm, selectedHour, minuteOpt.value) >
+            maxCompareVal);
       }
     }
-
-    picker.refresh();
   }
 
   /**
