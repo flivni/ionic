@@ -110,9 +110,14 @@ export function dateValueRange(format: string, min: DateTimeData, max: DateTimeD
     }
 
   } else if (format === FORMAT_MMMM || format === FORMAT_MMM ||
-             format === FORMAT_MM || format === FORMAT_M ||
-             format === FORMAT_hh || format === FORMAT_h) {
-    // month or 12-hour
+             format === FORMAT_MM || format === FORMAT_M) {
+    // month
+    for (i = 1; i < 13; i++) {
+      opts.push(i);
+    }
+
+  } else if (format === FORMAT_hh || format === FORMAT_h) {
+    // 12-hour
     opts.push(12);
     for (i = 1; i < 12; i++) {
       opts.push(i);
