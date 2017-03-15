@@ -506,11 +506,6 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     this.generate(picker);
     this.validate(picker);
 
-    picker.ionChange.subscribe(() => {
-      this.validate(picker);
-      picker.refresh();
-    });
-
     picker.present(pickerOptions);
 
     this._isOpen = true;
@@ -518,7 +513,13 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       this._isOpen = false;
     });
 
+    picker.ionChange.subscribe(() => {
+      this.validate(picker);
+      picker.refresh();
+    });
+
     picker.refresh();
+
   }
 
   /**
@@ -619,6 +620,15 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     let selectedHour = 0;
     let selectedAmpm:string = null;
 
+    if(this._min) {
+      selectedYear = this._min.year;
+      selectedMonth = this._min.month;
+      selectedDay = this._min.day;
+      selectedHour = this._min.hour;
+    } else if (this._max) {
+      selectedYear = this._max.year;
+    }
+
     if (yearCol) {
       yearOpt = yearCol.options[yearCol.selectedIndex];
       if (yearOpt) {
@@ -674,7 +684,6 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       }
     }
 
-    // loop through each minute and see if it is within the min/max date range
     if (ampmCol) {
       ampmOpt = ampmCol.options[ampmCol.selectedIndex];
       if(ampmOpt) {
@@ -692,7 +701,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     if (hourCol) {
       hourOpt = hourCol.options[hourCol.selectedIndex];
       if (hourOpt) {
-        // they have a selected day value
+        // they have a selected an hour value
         selectedHour = hourOpt.value;
       }
 
@@ -706,7 +715,6 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       }
     }
 
-    // loop through each minute and see if it is within the min/max date range
     if (minuteCol) {
       for (i = 0; i < minuteCol.options.length; i++) {
         minuteOpt = minuteCol.options[i];
@@ -835,9 +843,10 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       max.month = max.month || 1;
       max.day = max.day || 1;
     }
-    max.hour = max.hour || 23;
-    max.minute = max.minute || 59;
-    max.second = max.second || 59;
+
+    if (max.hour === null) { max.hour = 23 }
+    if (max.minute === null) { max.minute = 59 }
+    if (max.second === null) { max.second = 59 }
   }
 
   /**

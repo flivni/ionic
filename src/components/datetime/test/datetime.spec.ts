@@ -67,6 +67,93 @@ describe('DateTime', () => {
       expect(columns[0].options[11].disabled).toEqual(true);
     });
 
+    it('should restrict [09:30am-05:00pm]', () => {
+      datetime.min = '2000-01-15T09:30';
+      datetime.max = '2000-01-15T17:00';
+
+      datetime.pickerFormat = 'hh:mm A';
+      var picker = new Picker(mockApp());
+      datetime.generate(picker);
+
+      var columns = picker.getColumns();
+
+      ///////////////////////////////////////////////////////////////////////
+      // At 9:00 am -- Only hours 09-12 and minutes 30-59 should be available
+
+      columns[0].selectedIndex = 9; // 09
+      columns[1].selectedIndex = 30; // 30
+      columns[2].selectedIndex = 0; // 'am'
+
+      datetime.validate(picker);
+
+      expect(columns[0].options[8].disabled).toEqual(true); // hour 08
+      expect(columns[0].options[9].disabled).toEqual(false); // hour 09
+      expect(columns[1].options[29].disabled).toEqual(true); // minute 29
+      expect(columns[1].options[30].disabled).toEqual(false); // minute 30
+
+      ///////////////////////////////////////////////////////////////////////
+      // At 12:00 pm -- Only hours 12-05; all minutes should be available
+
+      columns[0].selectedIndex = 0; // 12
+      columns[1].selectedIndex = 0; // 00
+      columns[2].selectedIndex = 1; // 'pm'
+
+      datetime.validate(picker);
+
+      expect(columns[0].options[5].disabled).toEqual(false); // hour 05
+      expect(columns[0].options[6].disabled).toEqual(true); // hour 06
+      expect(columns[1].options[0].disabled).toEqual(false); // minute 00
+      expect(columns[1].options[1].disabled).toEqual(false); // minute 59
+
+      ///////////////////////////////////////////////////////////////////////
+      // At 05:00 pm -- Only hours 12-05 and the 00 minute should be available
+
+      columns[0].selectedIndex = 5; // 05
+      columns[1].selectedIndex = 0; // 00
+      columns[2].selectedIndex = 1; // 'pm'
+
+      datetime.validate(picker);
+
+      expect(columns[0].options[5].disabled).toEqual(false); // hour 05
+      expect(columns[0].options[6].disabled).toEqual(true); // hour 06
+      expect(columns[1].options[0].disabled).toEqual(false); // minute 00
+      expect(columns[1].options[1].disabled).toEqual(true); // minute 01
+    });
+
+    it('should restrict [December 15 2000 at 12:55, January 15 2001 at 13:05]', () => {
+      datetime.min = '2000-12-15T12:55';
+      datetime.max = '2001-01-15T13:05';
+
+      datetime.pickerFormat = 'MM DD YYYY';
+      var picker = new Picker(mockApp());
+      datetime.generate(picker);
+
+      var columns = picker.getColumns();
+      columns[0].selectedIndex = 11; // December
+      columns[1].selectedIndex = 14; // December 15th
+      columns[2].selectedIndex = 1; // December 15th, 2000
+      debugger;
+
+      datetime.validate(picker);
+
+      expect(columns[1].options[0].disabled).toEqual(true); // day 1
+      expect(columns[1].options[13].disabled).toEqual(true); // day 14
+      expect(columns[1].options[14].disabled).toEqual(false); // day 15
+
+      columns[0].selectedIndex = 0; // January
+      columns[1].selectedIndex = 14; // January 15th
+      columns[2].selectedIndex = 0; // January 15th, 2001
+
+      datetime.validate(picker);
+
+      expect(columns[0].options[0].disabled).toEqual(false); // January
+      expect(columns[0].options[1].disabled).toEqual(true);  // February
+
+      expect(columns[1].options[14].disabled).toEqual(false); // day 15
+      expect(columns[1].options[15].disabled).toEqual(true); // day 16
+      expect(columns[1].options[30].disabled).toEqual(true); // day 31
+    });
+
     it('should only show 31 valid days in the selected 31 day month, then reset for 28 day, then to 30', () => {
       datetime.max = '2010-12-31';
       datetime.min = '2000-01-01';
