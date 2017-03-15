@@ -132,7 +132,6 @@ describe('DateTime', () => {
       columns[0].selectedIndex = 11; // December
       columns[1].selectedIndex = 14; // December 15th
       columns[2].selectedIndex = 1; // December 15th, 2000
-      debugger;
 
       datetime.validate(picker);
 

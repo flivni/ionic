@@ -594,7 +594,6 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
    * @private
    */
   validate(picker: Picker) {
-    let i: number;
     let today = new Date();
     let columns = picker.getColumns();
 
@@ -635,7 +634,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
         // they have a selected year value
         selectedYear = yearOpt.value;
       } else if (yearCol.options.find(col => col.value === today.getFullYear())) {
-       selectedYear = today.getFullYear();
+         selectedYear = today.getFullYear();
       } else {
         // default to the first value if the current year doesn't exist in the options
         selectedYear = yearCol.options[0].value;
@@ -654,7 +653,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       }
 
       // loop through each month and see if it is within the min/max date range
-      for (i = 0; i < monthCol.options.length; i++) {
+      for (var i = 0; i < monthCol.options.length; i++) {
         monthOpt = monthCol.options[i];
 
         monthOpt.disabled =
@@ -674,7 +673,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       let numDaysInMonth = daysInMonth(selectedMonth, selectedYear);
 
       // loop through each day and see if it is within the min/max date range
-      for (i = 0; i < dayCol.options.length; i++) {
+      for (var i = 0; i < dayCol.options.length; i++) {
         dayOpt = dayCol.options[i];
 
         dayOpt.disabled =
@@ -686,10 +685,13 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
 
     if (ampmCol) {
       ampmOpt = ampmCol.options[ampmCol.selectedIndex];
-      if(ampmOpt) {
+      if (ampmOpt) {
+        // they have a selected am/pm value
         selectedAmpm = ampmOpt.value;
       }
-      for (i = 0; i < ampmCol.options.length; i++) {
+
+      // loop through each am/pm value and see if it should be shown based on min/max date range
+      for (var i = 0; i < ampmCol.options.length; i++) {
         ampmOpt = ampmCol.options[i];
 
         ampmOpt.disabled =
@@ -706,7 +708,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       }
 
       // loop through each hour and see if it is within the min/max date range
-      for (i = 0; i < hourCol.options.length; i++) {
+      for (var i = 0; i < hourCol.options.length; i++) {
         hourOpt = hourCol.options[i];
 
         hourOpt.disabled =
@@ -716,7 +718,8 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     }
 
     if (minuteCol) {
-      for (i = 0; i < minuteCol.options.length; i++) {
+      // loop through each minute and see if it is within the min/max date range
+      for (var i = 0; i < minuteCol.options.length; i++) {
         minuteOpt = minuteCol.options[i];
 
         minuteOpt.disabled =
