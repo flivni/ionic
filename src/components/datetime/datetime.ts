@@ -2,12 +2,13 @@ import { AfterContentInit, Component, ElementRef, EventEmitter, forwardRef, Host
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 import { Config } from '../../config/config';
-import { Picker, PickerController } from '../picker/picker';
+import { Picker } from '../picker/picker';
+import { PickerController } from '../picker/picker-controller';
 import { PickerColumn } from '../picker/picker-options';
 import { Form } from '../../util/form';
 import { Ion } from '../ion';
 import { Item } from '../item/item';
-import { deepCopy, isBlank, isPresent, isTrueProperty, isArray, isString, assert } from '../../util/util';
+import { deepCopy, isBlank, isPresent, isTrueProperty, isArray, isString, assert, clamp } from '../../util/util';
 import { dateValueRange, renderDateTime, renderTextFormat, convertFormatToKey, getValueFromFormat, parseTemplate, parseDate, updateDate, DateTimeData, convertDataToISO, daysInMonth, dateSortValue, dateDataSortValue, LocaleData } from '../../util/datetime-util';
 
 export const DATETIME_VALUE_ACCESSOR: any = {
@@ -251,7 +252,7 @@ export const DATETIME_VALUE_ACCESSOR: any = {
  * ```
  *
  *
- * @demo /docs/v2/demos/src/datetime/
+ * @demo /docs/demos/src/datetime/
  */
 @Component({
   selector: 'ion-datetime',
@@ -285,7 +286,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   _picker: Picker;
 
   /**
-   * @private
+   * @hidden
    */
   id: string;
 
@@ -421,16 +422,6 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   @Input() placeholder: string = '';
 
   /**
-   * @input {string} The mode determines which platform styles to use.
-   * Possible values are: `"ios"`, `"md"`, or `"wp"`.
-   * For more information, see [Platform Styles](/docs/v2/theming/platform-specific-styles).
-   */
-  @Input()
-  set mode(val: string) {
-    this._setMode(val);
-  }
-
-  /**
    * @output {any} Emitted when the datetime selection has changed.
    */
   @Output() ionChange: EventEmitter<any> = new EventEmitter();
@@ -478,7 +469,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   open() {
     assert(!this._isOpen, 'datetime is already open');
@@ -513,18 +504,16 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       picker.refresh();
     });
 
-    picker.present(pickerOptions);
-
     this._isOpen = true;
     picker.onDidDismiss(() => {
       this._isOpen = false;
     });
 
-    picker.refresh();
+    picker.present(pickerOptions);
   }
 
   /**
-   * @private
+   * @hidden
    */
   generate() {
     const picker = this._picker;
@@ -564,7 +553,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
           values = dateValueRange(format, this._min, this._max);
         }
 
-        let column: PickerColumn = {
+        const column: PickerColumn = {
           name: key,
           selectedIndex: 0,
           options: values.map(val => {
@@ -577,8 +566,8 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
 
         // cool, we've loaded up the columns with options
         // preselect the option for this column
-        var optValue = getValueFromFormat(this._value, format);
-        var selectedIndex = column.options.findIndex(opt => opt.value === optValue);
+        const optValue = getValueFromFormat(this._value, format);
+        const selectedIndex = column.options.findIndex(opt => opt.value === optValue);
         if (selectedIndex >= 0) {
           // set the select index for this column's options
           column.selectedIndex = selectedIndex;
@@ -588,10 +577,10 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
         picker.addColumn(column);
       });
 
-      const min = <any>this._min;
-      const max = <any>this._max;
 
       // Normalize min/max
+      const min = <any>this._min;
+      const max = <any>this._max;
       const columns = this._picker.getColumns();
       ['month', 'day', 'hour', 'minute']
         .filter(name => !columns.find(column => column.name === name))
@@ -605,7 +594,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   validateColumn(name: string, index: number, min: number, max: number, lowerBounds: any[], upperBounds: any[]): number {
     assert(lowerBounds.length === 6, 'lowerBounds length must be 6');
@@ -619,6 +608,8 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
     const lb = lowerBounds.slice();
     const ub = upperBounds.slice();
     const options = column.options;
+    let indexMin = options.length - 1;
+    let indexMax = 0;
 
     for (var i = 0; i < options.length; i++) {
       var opt = options[i];
@@ -626,15 +617,19 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
       lb[index] = opt.value;
       ub[index] = opt.value;
 
-      opt.disabled = (
+      var disabled = opt.disabled = (
         value < lowerBounds[index] ||
         value > upperBounds[index] ||
         dateSortValue(ub[0], ub[1], ub[2], ub[3], ub[4], ub[5]) < min ||
         dateSortValue(lb[0], lb[1], lb[2], lb[3], lb[4], lb[5]) > max
       );
+      if (!disabled) {
+        indexMin = Math.min(indexMin, i);
+        indexMax = Math.max(indexMax, i);
+      }
     }
-
-    opt = column.options[column.selectedIndex];
+    let selectedIndex = column.selectedIndex = clamp(indexMin, column.selectedIndex, indexMax);
+    opt = column.options[selectedIndex];
     if (opt) {
       return opt.value;
     }
@@ -704,7 +699,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   divyColumns() {
     const pickerColumns = this._picker.getColumns();
@@ -739,21 +734,21 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   setValue(newData: any) {
     updateDate(this._value, newData);
   }
 
   /**
-   * @private
+   * @hidden
    */
   getValue(): DateTimeData {
     return this._value;
   }
 
   /**
-   * @private
+   * @hidden
    */
   checkHasValue(inputValue: any) {
     if (this._item) {
@@ -762,7 +757,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   updateText() {
     // create the text of the formatted data
@@ -771,7 +766,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   calcMinMax(now?: Date) {
     const todaysYear = (now || new Date()).getFullYear();
@@ -838,7 +833,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   writeValue(val: any) {
     console.debug('datetime, writeValue', val);
@@ -848,7 +843,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   ngAfterContentInit() {
     // first see if locale names were provided in the inputs
@@ -863,7 +858,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   registerOnChange(fn: Function): void {
     this._fn = fn;
@@ -881,12 +876,12 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   registerOnTouched(fn: any) { this.onTouched = fn; }
 
   /**
-   * @private
+   * @hidden
    */
   onChange(val: any) {
     // onChange used when there is not an formControlName
@@ -898,19 +893,19 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
   }
 
   /**
-   * @private
+   * @hidden
    */
   onTouched() { }
 
   /**
-   * @private
+   * @hidden
    */
   setDisabledState(isDisabled: boolean) {
     this.disabled = isDisabled;
   }
 
   /**
-   * @private
+   * @hidden
    */
   ngOnDestroy() {
     this._form.deregister(this);
@@ -918,7 +913,7 @@ export class DateTime extends Ion implements AfterContentInit, ControlValueAcces
 }
 
 /**
- * @private
+ * @hidden
  * Use to convert a string of comma separated numbers or
  * an array of numbers, and clean up any user input
  */
@@ -945,7 +940,7 @@ function convertToArrayOfNumbers(input: any, type: string): number[] {
 }
 
 /**
- * @private
+ * @hidden
  * Use to convert a string of comma separated strings or
  * an array of strings, and clean up any user input
  */

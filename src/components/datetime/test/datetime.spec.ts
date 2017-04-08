@@ -1,7 +1,8 @@
 
 import { DateTime } from '../datetime';
 import { Form } from '../../../util/form';
-import { Picker, PickerController } from '../../picker/picker';
+import { Picker } from '../../picker/picker';
+import { PickerController } from '../../picker/picker-controller';
 import * as datetime from '../../../util/datetime-util';
 import { mockApp, mockConfig, mockElementRef, mockRenderer } from '../../../util/mock-providers';
 
@@ -630,7 +631,7 @@ describe('DateTime', () => {
 
   beforeEach(() => {
     datetime = new DateTime(new Form(), mockConfig(), mockElementRef(), mockRenderer(), null, <PickerController>{});
-    datetime._picker = picker = new Picker(mockApp());
+    datetime._picker = picker = new Picker(mockApp(), null, mockConfig());
   });
 
   console.warn = function(){};

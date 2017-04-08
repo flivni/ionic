@@ -4,7 +4,7 @@ import { Config } from '../../config/config';
 import { NON_TEXT_INPUT_REGEX } from '../../util/dom';
 import { GestureController, BlockerDelegate, BLOCK_ALL } from '../../gestures/gesture-controller';
 import { isPresent, assert } from '../../util/util';
-import { Key } from '../../platform/key';
+import { KEY_ENTER, KEY_ESCAPE } from '../../platform/key';
 import { NavParams } from '../../navigation/nav-params';
 import { NavOptions } from '../../navigation/nav-util';
 import { Platform } from '../../platform/platform';
@@ -13,7 +13,7 @@ import { AlertInputOptions, AlertOptions, AlertButton } from './alert-options';
 
 
 /**
- * @private
+ * @hidden
  */
 @Component({
   selector: 'ion-alert',
@@ -27,7 +27,7 @@ import { AlertInputOptions, AlertOptions, AlertButton } from './alert-options';
       '<div id="{{msgId}}" class="alert-message" [innerHTML]="d.message"></div>' +
       '<div *ngIf="d.inputs.length" [ngSwitch]="inputType">' +
 
-        '<template ngSwitchCase="radio">' +
+        '<ng-template ngSwitchCase="radio">' +
           '<div class="alert-radio-group" role="radiogroup" [attr.aria-labelledby]="hdrId" [attr.aria-activedescendant]="activeId">' +
             '<button ion-button="alert-radio-button" *ngFor="let i of d.inputs" (click)="rbClick(i)" [attr.aria-checked]="i.checked" [disabled]="i.disabled" [attr.id]="i.id" class="alert-tappable alert-radio" role="radio">' +
               '<div class="alert-radio-icon"><div class="alert-radio-inner"></div></div>' +
@@ -36,9 +36,9 @@ import { AlertInputOptions, AlertOptions, AlertButton } from './alert-options';
               '</div>' +
             '</button>' +
           '</div>' +
-        '</template>' +
+        '</ng-template>' +
 
-        '<template ngSwitchCase="checkbox">' +
+        '<ng-template ngSwitchCase="checkbox">' +
           '<div class="alert-checkbox-group">' +
             '<button ion-button="alert-checkbox-button" *ngFor="let i of d.inputs" (click)="cbClick(i)" [attr.aria-checked]="i.checked" [attr.id]="i.id" [disabled]="i.disabled" class="alert-tappable alert-checkbox" role="checkbox">' +
               '<div class="alert-checkbox-icon"><div class="alert-checkbox-inner"></div></div>' +
@@ -47,15 +47,15 @@ import { AlertInputOptions, AlertOptions, AlertButton } from './alert-options';
               '</div>' +
             '</button>' +
           '</div>' +
-        '</template>' +
+        '</ng-template>' +
 
-        '<template ngSwitchDefault>' +
+        '<ng-template ngSwitchDefault>' +
           '<div class="alert-input-group">' +
             '<div *ngFor="let i of d.inputs" class="alert-input-wrapper">' +
               '<input [placeholder]="i.placeholder" [(ngModel)]="i.value" [type]="i.type" [min]="i.min" [max]="i.max" [attr.id]="i.id" class="alert-input">' +
             '</div>' +
           '</div>' +
-        '</template>' +
+        '</ng-template>' +
 
       '</div>' +
       '<div class="alert-button-group" [ngClass]="{\'alert-button-group-vertical\':d.buttons.length>2}">' +
@@ -72,6 +72,7 @@ import { AlertInputOptions, AlertOptions, AlertButton } from './alert-options';
   encapsulation: ViewEncapsulation.None,
 })
 export class AlertCmp {
+
   activeId: string;
   descId: string;
   d: AlertOptions;
@@ -217,7 +218,7 @@ export class AlertCmp {
   @HostListener('body:keyup', ['$event'])
   keyUp(ev: KeyboardEvent) {
     if (this.enabled && this._viewCtrl.isLast()) {
-      if (ev.keyCode === Key.ENTER) {
+      if (ev.keyCode === KEY_ENTER) {
         if (this.lastClick + 1000 < Date.now()) {
           // do not fire this click if there recently was already a click
           // this can happen when the button has focus and used the enter
@@ -228,7 +229,7 @@ export class AlertCmp {
           this.btnClick(button);
         }
 
-      } else if (ev.keyCode === Key.ESCAPE) {
+      } else if (ev.keyCode === KEY_ESCAPE) {
         console.debug(`alert, escape button`);
         this.bdClick();
       }

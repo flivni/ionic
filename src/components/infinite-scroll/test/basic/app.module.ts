@@ -1,5 +1,6 @@
 import { Component, ViewChild, NgModule } from '@angular/core';
-import { IonicApp, IonicModule, InfiniteScroll, NavController } from '../../../../../ionic-angular';
+import { BrowserModule } from '@angular/platform-browser';
+import { IonicApp, IonicModule, InfiniteScroll, NavController } from '../../../..';
 
 
 @Component({
@@ -70,23 +71,24 @@ export class E2EPage2 {
 @Component({
   template: '<ion-nav [root]="root"></ion-nav>'
 })
-export class E2EApp {
+export class AppComponent {
   root = E2EPage1;
 }
 
 @NgModule({
   declarations: [
-    E2EApp,
+    AppComponent,
     E2EPage1,
     E2EPage2,
     MyContent
   ],
   imports: [
-    IonicModule.forRoot(E2EApp)
+    BrowserModule,
+    IonicModule.forRoot(AppComponent)
   ],
   bootstrap: [IonicApp],
   entryComponents: [
-    E2EApp,
+    AppComponent,
     E2EPage1,
     E2EPage2,
     MyContent

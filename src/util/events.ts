@@ -27,7 +27,7 @@ import { ScrollView } from '../util/scroll-view';
  * });
  *
  * ```
- * @demo /docs/v2/demos/src/events/
+ * @demo /docs/demos/src/events/
  */
 export class Events {
   private _channels: any = [];
@@ -107,7 +107,7 @@ export class Events {
 }
 
 /**
- * @private
+ * @hidden
  */
 export function setupEvents(plt: Platform, dom: DomController): Events {
   const events = new Events();
@@ -137,8 +137,8 @@ export function setupEvents(plt: Platform, dom: DomController): Events {
       let contentEle = <any>el.closest('.scroll-content');
       if (contentEle) {
         var style = contentEle.style;
-        var scroll = new ScrollView(plt, dom, false);
-        scroll.init(contentEle, 0, 0);
+        var scroll = new ScrollView(null, plt, dom);
+        scroll._el = contentEle;
           // We need to stop scrolling if it's happening and scroll up
 
         style['WebkitBackfaceVisibility'] = 'hidden';
@@ -171,7 +171,7 @@ export function setupEvents(plt: Platform, dom: DomController): Events {
 }
 
 /**
- * @private
+ * @hidden
  */
 export function setupProvideEvents(plt: Platform, dom: DomController) {
   return function() {

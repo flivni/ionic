@@ -1,5 +1,6 @@
 
 import { assert } from './util';
+import { App } from '../components/app/app';
 import { DomController, DomCallback } from '../platform/dom-controller';
 import { Platform, EventListenerOptions } from '../platform/platform';
 import { pointerCoord } from './dom';
@@ -12,11 +13,10 @@ export class ScrollView {
   onScroll: (ev: ScrollEvent) => void;
   onScrollEnd: (ev: ScrollEvent) => void;
   initialized: boolean = false;
-  enabled: boolean = false;
-  contentTop: number;
-  contentBottom: number;
+  _el: HTMLElement;
 
-  private _el: HTMLElement;
+
+  private _eventsEnabled = false;
   private _js: boolean;
   private _t: number = 0;
   private _l: number = 0;
@@ -25,11 +25,10 @@ export class ScrollView {
 
 
   constructor(
+    private _app: App,
     private _plt: Platform,
-    private _dom: DomController,
-    virtualScrollEventAssist: boolean
+    private _dom: DomController
   ) {
-    this._js = virtualScrollEventAssist;
     this.ev = {
       timeStamp: 0,
       scrollTop: 0,
@@ -55,40 +54,25 @@ export class ScrollView {
   init(ele: HTMLElement, contentTop: number, contentBottom: number) {
     assert(ele, 'scroll-view, element can not be null');
     this._el = ele;
-    this.contentTop = contentTop;
-    this.contentBottom = contentBottom;
-
     if (!this.initialized) {
       this.initialized = true;
-
-      if (this.enabled) {
-        this.enable();
+      if (this._js) {
+        this.enableJsScroll(contentTop, contentBottom);
+      } else {
+        this.enableNativeScrolling();
       }
     }
   }
 
-  setEnabled() {
-    if (!this.enabled) {
-      this.enabled = true;
-      if (this.initialized) {
-        this.enable();
-      }
-    }
-  }
-
-  enable() {
-    assert(this.initialized, 'scroll must be initialized');
-    assert(this.enabled, 'scroll-view must be enabled');
-    assert(this._el, 'scroll-view, element can not be null');
-
-    if (this._js) {
-      this.enableJsScroll();
-    } else {
-      this.enableNativeScrolling();
-    }
+  enableEvents() {
+    this._eventsEnabled = true;
   }
 
   private enableNativeScrolling() {
+    assert(this.onScrollStart, 'onScrollStart is not defined');
+    assert(this.onScroll, 'onScroll is not defined');
+    assert(this.onScrollEnd, 'onScrollEnd is not defined');
+
     this._js = false;
     if (!this._el) {
       return;
@@ -101,6 +85,14 @@ export class ScrollView {
     const positions: number[] = [];
 
     function scrollCallback(scrollEvent: UIEvent) {
+      // remind the app that it's currently scrolling
+      self._app.setScrolling();
+
+      // if events are disabled, we do nothing
+      if (!self._eventsEnabled) {
+        return;
+      }
+
       ev.timeStamp = scrollEvent.timeStamp;
       // Event.timeStamp is 0 in firefox
       if (!ev.timeStamp) {
@@ -151,13 +143,12 @@ export class ScrollView {
 
         if (startPos !== endPos) {
           // compute relative movement between these two points
-          var timeOffset = (positions[endPos] - positions[startPos]);
           var movedTop = (positions[startPos - 2] - positions[endPos - 2]);
           var movedLeft = (positions[startPos - 1] - positions[endPos - 1]);
-
+          var factor = FRAME_MS / (positions[endPos] - positions[startPos]);
           // based on XXms compute the movement to apply for each render step
-          ev.velocityY = ((movedTop / timeOffset) * FRAME_MS);
-          ev.velocityX = ((movedLeft / timeOffset) * FRAME_MS);
+          ev.velocityY = movedTop * factor;
+          ev.velocityX = movedLeft * factor;
 
           // figure out which direction we're scrolling
           ev.directionY = (movedTop > 0 ? 'up' : 'down');
@@ -199,7 +190,7 @@ export class ScrollView {
 
 
   /**
-   * @private
+   * @hidden
    * JS Scrolling has been provided only as a temporary solution
    * until iOS apps can take advantage of scroll events at all times.
    * The goal is to eventually remove JS scrolling entirely. When we
@@ -207,7 +198,7 @@ export class ScrollView {
    * inertia then this can be burned to the ground. iOS's more modern
    * WKWebView does not have this issue, only UIWebView does.
    */
-  enableJsScroll() {
+  enableJsScroll(contentTop: number, contentBottom: number) {
     const self = this;
     self._js = true;
     const ele = self._el;
@@ -226,7 +217,7 @@ export class ScrollView {
     function setMax() {
       if (!max) {
         // ******** DOM READ ****************
-        max = ele.scrollHeight - ele.parentElement.offsetHeight + self.contentTop + self.contentBottom;
+        max = ele.scrollHeight - ele.parentElement.offsetHeight + contentTop + contentBottom;
       }
     };
 
@@ -538,7 +529,7 @@ export class ScrollView {
   }
 
   /**
-   * @private
+   * @hidden
    */
   destroy() {
     this.stop();
@@ -546,11 +537,10 @@ export class ScrollView {
     this._endTmr && this._dom.cancel(this._endTmr);
     this._lsn && this._lsn();
 
-    this.onScrollStart = this.onScroll = this.onScrollEnd = null;
-
     let ev = this.ev;
     ev.domWrite = ev.contentElement = ev.fixedElement = ev.scrollElement = ev.headerElement = null;
     this._lsn = this._el = this._dom = this.ev = ev = null;
+    this.onScrollStart = this.onScroll = this.onScrollEnd = null;
   }
 
 }

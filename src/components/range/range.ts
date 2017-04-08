@@ -90,7 +90,7 @@ export const RANGE_VALUE_ACCESSOR: any = {
  * ```
  *
  *
- * @demo /docs/v2/demos/src/range/
+ * @demo /docs/demos/src/range/
  */
 @Component({
   selector: 'ion-range',
@@ -147,32 +147,12 @@ export class Range extends Ion implements AfterViewInit, ControlValueAccessor, O
   @ViewChild('slider') public _slider: ElementRef;
 
   /**
-   * @private
+   * @hidden
    */
   value: any;
 
   /**
-   * @input {string} The color to use from your Sass `$colors` map.
-   * Default options are: `"primary"`, `"secondary"`, `"danger"`, `"light"`, and `"dark"`.
-   * For more information, see [Theming your App](/docs/v2/theming/theming-your-app).
-   */
-  @Input()
-  set color(val: string) {
-    this._setColor(val);
-  }
-
-  /**
-   * @input {string} The mode determines which platform styles to use.
-   * Possible values are: `"ios"`, `"md"`, or `"wp"`.
-   * For more information, see [Platform Styles](/docs/v2/theming/platform-specific-styles).
-   */
-  @Input()
-  set mode(val: string) {
-    this._setMode(val);
-  }
-
-  /**
-   * @private
+   * @hidden
    */
   id: string;
 
@@ -340,7 +320,7 @@ export class Range extends Ion implements AfterViewInit, ControlValueAccessor, O
   }
 
   /**
-   * @private
+   * @hidden
    */
   ngAfterViewInit() {
     // add touchstart/mousedown listeners
@@ -548,7 +528,7 @@ export class Range extends Ion implements AfterViewInit, ControlValueAccessor, O
     }
   }
 
-  /** @private */
+  /** @hidden */
   _keyChg(isIncrease: boolean, isKnobB: boolean) {
     const step = this._step;
     if (isKnobB) {
@@ -587,7 +567,7 @@ export class Range extends Ion implements AfterViewInit, ControlValueAccessor, O
   }
 
   /**
-   * @private
+   * @hidden
    */
   writeValue(val: any) {
     if (isPresent(val)) {
@@ -609,7 +589,7 @@ export class Range extends Ion implements AfterViewInit, ControlValueAccessor, O
   }
 
   /**
-   * @private
+   * @hidden
    */
   registerOnChange(fn: Function): void {
     this._fn = fn;
@@ -620,12 +600,12 @@ export class Range extends Ion implements AfterViewInit, ControlValueAccessor, O
   }
 
   /**
-   * @private
+   * @hidden
    */
   registerOnTouched(fn: any) { this.onTouched = fn; }
 
   /**
-   * @private
+   * @hidden
    */
   onChange(val: any) {
     // used when this input does not have an ngModel or formControlName
@@ -634,19 +614,19 @@ export class Range extends Ion implements AfterViewInit, ControlValueAccessor, O
   }
 
   /**
-   * @private
+   * @hidden
    */
   onTouched() { }
 
   /**
-   * @private
+   * @hidden
    */
   setDisabledState(isDisabled: boolean) {
     this.disabled = isDisabled;
   }
 
   /**
-   * @private
+   * @hidden
    */
   ngOnDestroy() {
     this._form.deregister(this);

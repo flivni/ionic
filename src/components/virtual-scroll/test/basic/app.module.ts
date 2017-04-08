@@ -1,8 +1,7 @@
-import { Component, NgModule, enableProdMode } from '@angular/core';
-import { IonicApp, IonicModule, NavController, Platform } from '../../../../../ionic-angular';
+import { Component, NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { IonicApp, IonicModule, NavController, Platform } from '../../../..';
 
-
-enableProdMode();
 
 @Component({
   templateUrl: 'main.html'
@@ -13,19 +12,23 @@ export class E2EPage {
   counter: number = 0;
 
   constructor(plt: Platform, public navCtrl: NavController) {
-    for (var i = 0; i < 200; i++) {
-      this.addItem();
-    }
-
     if (plt.is('ios')) {
       if (plt.testUserAgent('Safari')) {
         this.webview = ': iOS Safari';
 
-      } else if (!!window['webkit']) {
+      } else if (!!(window as any)['webkit']) {
         this.webview = ': iOS WKWebView';
 
       } else {
         this.webview = ': iOS UIWebView';
+      }
+    }
+  }
+
+  addItems() {
+    if (this.items.length === 0) {
+      for (var i = 0; i < 200; i++) {
+        this.addItem();
       }
     }
   }
@@ -61,22 +64,23 @@ export class E2EPage {
 @Component({
   template: '<ion-nav [root]="root"></ion-nav>'
 })
-export class E2EApp {
+export class AppComponent {
   root = E2EPage;
 }
 
 
 @NgModule({
   declarations: [
-    E2EApp,
+    AppComponent,
     E2EPage
   ],
   imports: [
-    IonicModule.forRoot(E2EApp)
+    BrowserModule,
+    IonicModule.forRoot(AppComponent)
   ],
   bootstrap: [IonicApp],
   entryComponents: [
-    E2EApp,
+    AppComponent,
     E2EPage
   ]
 })

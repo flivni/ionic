@@ -1,12 +1,14 @@
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, Optional, Output, Renderer, ViewChild, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, NgZone, OnDestroy, Optional, Output, Renderer, ViewChild, ViewEncapsulation } from '@angular/core';
 
 import { App } from '../app/app';
 import { Config } from '../../config/config';
 import { DomController } from '../../platform/dom-controller';
 import { Img } from '../img/img';
 import { Ion } from '../ion';
+import { isTabs } from '../../navigation/nav-util';
 import { isTrueProperty, assert, removeArrayItem } from '../../util/util';
 import { Keyboard } from '../../platform/keyboard';
+import { NavController } from '../../navigation/nav-controller';
 import { Platform } from '../../platform/platform';
 import { ScrollView, ScrollEvent } from '../../util/scroll-view';
 import { Tabs } from '../tabs/tabs';
@@ -14,6 +16,14 @@ import { ViewController } from '../../navigation/view-controller';
 
 export { ScrollEvent } from '../../util/scroll-view';
 
+
+export class EventEmitterProxy<T> extends EventEmitter<T> {
+  onSubscribe: Function;
+  subscribe(generatorOrNext?: any, error?: any, complete?: any): any {
+    this.onSubscribe();
+    return super.subscribe(generatorOrNext, error, complete);
+  }
+}
 
 /**
  * @name Content
@@ -53,7 +63,9 @@ export { ScrollEvent } from '../../util/scroll-view';
  *
  * @advanced
  *
- * Resizing the content
+ * Resizing the content. If the height of `ion-header`, `ion-footer` or `ion-tabbar`
+ * changes dynamically, `content.resize()` has to be called in order to update the
+ * layout of `Content`.
  *
  *
  * ```ts
@@ -123,7 +135,7 @@ export { ScrollEvent } from '../../util/scroll-view';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None
 })
-export class Content extends Ion implements OnDestroy {
+export class Content extends Ion implements OnDestroy, AfterViewInit {
   /** @internal */
   _cTop: number;
   /** @internal */
@@ -142,6 +154,8 @@ export class Content extends Ion implements OnDestroy {
   _hdrHeight: number;
   /** @internal */
   _ftrHeight: number;
+  /** @internal */
+  _tabs: Tabs;
   /** @internal */
   _tabbarHeight: number;
   /** @internal */
@@ -177,7 +191,7 @@ export class Content extends Ion implements OnDestroy {
   private _imgRndBfr: number;
   private _imgVelMax: number;
 
-  /** @private */
+  /** @hidden */
   statusbarPadding: boolean;
 
   /** @internal */
@@ -308,17 +322,17 @@ export class Content extends Ion implements OnDestroy {
   /**
    * @output {ScrollEvent} Emitted when the scrolling first starts.
    */
-  @Output() ionScrollStart: EventEmitter<ScrollEvent> = new EventEmitter<ScrollEvent>();
+  @Output() ionScrollStart: EventEmitterProxy<ScrollEvent> = new EventEmitterProxy<ScrollEvent>();
 
   /**
    * @output {ScrollEvent} Emitted on every scroll event.
    */
-  @Output() ionScroll: EventEmitter<ScrollEvent> = new EventEmitter<ScrollEvent>();
+  @Output() ionScroll: EventEmitterProxy<ScrollEvent> = new EventEmitterProxy<ScrollEvent>();
 
   /**
    * @output {ScrollEvent} Emitted when scrolling ends.
    */
-  @Output() ionScrollEnd: EventEmitter<ScrollEvent> = new EventEmitter<ScrollEvent>();
+  @Output() ionScrollEnd: EventEmitterProxy<ScrollEvent> = new EventEmitterProxy<ScrollEvent>();
 
 
   constructor(
@@ -331,20 +345,29 @@ export class Content extends Ion implements OnDestroy {
     public _keyboard: Keyboard,
     public _zone: NgZone,
     @Optional() viewCtrl: ViewController,
-    @Optional() public _tabs: Tabs
+    @Optional() navCtrl: NavController
   ) {
     super(config, elementRef, renderer, 'content');
+
+    const enableScrollListener = () => this._scroll.enableEvents();
+    this.ionScroll.onSubscribe = enableScrollListener;
+    this.ionScrollStart.onSubscribe = enableScrollListener;
+    this.ionScrollEnd.onSubscribe = enableScrollListener;
 
     this.statusbarPadding = config.getBoolean('statusbarPadding', false);
     this._imgReqBfr = config.getNumber('imgRequestBuffer', 1400);
     this._imgRndBfr = config.getNumber('imgRenderBuffer', 400);
     this._imgVelMax = config.getNumber('imgVelocityMax', 3);
 
-    // use JS scrolling for iOS UIWebView
-    // goal is to completely remove this when iOS
-    // fully supports scroll events
-    // listen to JS scroll events
-    this._scroll = new ScrollView(_plt, _dom, config.getBoolean('virtualScrollEventAssist'));
+    this._scroll = new ScrollView(_app, _plt, _dom);
+
+    while (navCtrl) {
+      if (isTabs(<any>navCtrl)) {
+        this._tabs = <any>navCtrl;
+        break;
+      }
+      navCtrl = navCtrl.parent;
+    }
 
     if (viewCtrl) {
       // content has a view controller
@@ -369,9 +392,9 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    */
-  enableScrollListener() {
+  ngAfterViewInit() {
     assert(this.getFixedElement(), 'fixed element was not found');
     assert(this.getScrollElement(), 'scroll element was not found');
 
@@ -386,9 +409,6 @@ export class Content extends Ion implements OnDestroy {
 
     // subscribe to every scroll move
     scroll.onScroll = (ev) => {
-      // remind the app that it's currently scrolling
-      this._app.setScrolling();
-
       // emit to all of our other friends things be scrolling
       this.ionScroll.emit(ev);
 
@@ -401,12 +421,17 @@ export class Content extends Ion implements OnDestroy {
 
       this.imgsUpdate();
     };
-
-    scroll.setEnabled();
   }
 
   /**
-   * @private
+   * @hidden
+   */
+  enableJsScroll() {
+    this._scroll.enableJsScroll(this._cTop, this._cBottom);
+  }
+
+  /**
+   * @hidden
    */
   ngOnDestroy() {
     this._scLsn && this._scLsn();
@@ -418,7 +443,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    */
   getScrollElement(): HTMLElement {
     return this._scrollContent.nativeElement;
@@ -432,7 +457,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    */
   onScrollElementTransitionEnd(callback: {(ev: TransitionEvent): void}) {
     this._plt.transitionEnd(this.getScrollElement(), callback);
@@ -507,14 +532,14 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    */
   removeImg(img: Img) {
     removeArrayItem(this._imgs, img);
   }
 
   /**
-   * @private
+   * @hidden
    * DOM WRITE
    */
   setScrollElementStyle(prop: string, val: any) {
@@ -563,7 +588,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    * DOM WRITE
    * Adds padding to the bottom of the scroll element when the keyboard is open
    * so content below the keyboard can be scrolled into view.
@@ -584,7 +609,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    * DOM WRITE
    */
   clearScrollPaddingFocusOut() {
@@ -603,7 +628,7 @@ export class Content extends Ion implements OnDestroy {
 
   /**
    * Tell the content to recalculate its dimensions. This should be called
-   * after dynamically adding headers, footers, or tabs.
+   * after dynamically adding/removing headers, footers, or tabs.
    */
   resize() {
     this._dom.read(this._readDimensions.bind(this));
@@ -611,7 +636,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    * DOM READ
    */
   private _readDimensions() {
@@ -759,7 +784,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    * DOM WRITE
    */
   private _writeDimensions() {
@@ -853,7 +878,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    */
   imgsUpdate() {
     if (this._scroll.initialized && this._imgs.length && this.isImgsUpdatable()) {
@@ -862,7 +887,7 @@ export class Content extends Ion implements OnDestroy {
   }
 
   /**
-   * @private
+   * @hidden
    */
   isImgsUpdatable() {
     // an image is only "updatable" if the content isn't scrolling too fast
